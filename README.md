@@ -9,5 +9,5 @@ Filebrowser.sh
 
 ### 下载安装:
 ``` bash
-wget -N --no-check-certificate https://raw.githubusercontent.com/vinewx/script/master/Filebrowser.sh && chmod +x Filebrowser.sh && bash Filebrowser.sh
+bash <(curl -L -s https://raw.githubusercontent.com/vinewx/script/master/Filebrowser.sh)
 ```
