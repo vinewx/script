@@ -47,7 +47,7 @@ Download_filebrowser(){
     echo "文件目录 = ${file_dir}"
     echo "---------------------------"
     echo
-	[[ ! -e ${file_dir} ]] && mkdir "${file_dir}"
+	[[ ! -e ${file_dir} ]] && mkdir -p "${file_dir}"
     while true
     do
     dport=$(shuf -i 9000-19999 -n 1)
