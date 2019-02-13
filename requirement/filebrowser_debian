@@ -13,7 +13,7 @@
 NAME="Filebrowser"
 NAME_BIN="filebrowser"
 BIN="/etc/filebrowser/filebrowser"
-CONF="/etc/filebrowser/filebrowser.json"
+DB="/etc/filebrowser/database.db"
 
 Info_font_prefix="\033[32m" && Error_font_prefix="\033[31m" && Info_background_prefix="\033[42;37m" && Error_background_prefix="\033[41;37m" && Font_suffix="\033[0m"
 RETVAL=0
@@ -32,7 +32,7 @@ do_start(){
 		echo -e "${Info_font_prefix}[信息]${Font_suffix} $NAME (PID ${PID}) 正在运行..." && exit 0
 	else
 		ulimit -n 51200
-		nohup "$BIN" -c "$CONF" &>/var/log/filebrowser.log &
+		nohup "$BIN" -d "$DB" &>/var/log/filebrowser.log &
 		sleep 2s
 		check_running
 		if [[ $? -eq 0 ]]; then

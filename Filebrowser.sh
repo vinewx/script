@@ -4,13 +4,13 @@ export PATH
 #=================================================
 #       System Required: CentOS/Debian/Ubuntu
 #       Description: Filebrowser Install
-#       Version: 1.0.0
+#       Version: 2.0.0
 #       Author: vinew
 #       Blog: https://vinew.cc/
 #=================================================
 file="/etc/filebrowser/"
 filebrowser_bin="/etc/filebrowser/filebrowser"
-filebrowser_conf_file="/etc/filebrowser/filebrowser.json"
+filebrowser_db_file="/etc/filebrowser/database.db"
 Info_font_prefix="\033[32m" && Error_font_prefix="\033[31m" && Info_background_prefix="\033[42;37m" && Error_background_prefix="\033[41;37m" && Font_suffix="\033[0m"
 
 check_sys(){
@@ -35,10 +35,8 @@ check_installed_status(){
 	[[ ! -e ${filebrowser_bin} ]] && echo -e "${Error_font_prefix}[错误]${Font_suffix} filebrowser 没有安装，请检查 !" && exit 1
 }
 Download_filebrowser(){
-	[[ ! -e ${file} ]] && mkdir "${file}"
-	if [[ -e ${filebrowser_conf_file} ]]; then
-		rm -rf ${filebrowser_conf_file}
-	fi  
+	[[ ! -e ${file} ]] && mkdir "${file}" 
+	if [[ ! -e ${filebrowser_db_file} ]]; then
     echo "请输入Filebrowser文件目录"
     read -p "(默认目录: /Cloud):" file_dir
     [ -z "${file_dir}" ] && file_dir="/Cloud"
@@ -48,6 +46,22 @@ Download_filebrowser(){
     echo "---------------------------"
     echo
 	[[ ! -e ${file_dir} ]] && mkdir -p "${file_dir}"
+	echo "请输入Filebrowser用户名"
+    read -p "(默认用户名: admin):" file_user
+    [ -z "${file_user}" ] && file_user="admin"
+    echo
+    echo "---------------------------"
+    echo "用户名 = ${file_user}"
+    echo "---------------------------"
+    echo
+    echo "请输入Filebrowser密码"
+    read -p "(默认密码: admin):" file_pw
+    [ -z "${file_pw}" ] && file_pw="admin"
+    echo
+    echo "---------------------------"
+    echo "密码 = ${file_pw}"
+    echo "---------------------------"
+    echo
     while true
     do
     dport=$(shuf -i 9000-19999 -n 1)
@@ -67,27 +81,7 @@ Download_filebrowser(){
     fi
     echo -e "${Error_font_prefix}[错误]${Font_suffix} 请输入正确端口，端口范围 [1-65535]"
     done
-	cat >${filebrowser_conf_file} <<-EOF
-{
-  "port": ${port},
-  "noAuth": false,
-  "baseURL": "",
-  "address": "0.0.0.0",
-  "reCaptchaKey": "",
-  "reCaptchaSecret": "",
-  "database": "/etc/filebrowser/database.db",
-  "log": "stdout",
-  "plugin": "",
-  "scope": "${file_dir}",
-  "allowCommands": true,
-  "allowEdit": true,
-  "allowNew": true,
-  "commands": [
-    "git",
-    "svn"
-  ]
-}
-		EOF
+	fi
 	cd "/tmp"
 	PID=$(ps -ef |grep "filebrowser" |grep -v "grep" |grep -v "init.d" |grep -v "service" |grep -v "filebrowser_install" |awk '{print $2}')
 	[[ ! -z ${PID} ]] && kill -9 ${PID}
@@ -133,9 +127,32 @@ Service_filebrowser(){
 	fi
 	fi
 }
+check_database(){
+	if [[ ! -e ${filebrowser_db_file} ]]; then
+	"$filebrowser_bin" -d "$filebrowser_db_file" config init
+	"$filebrowser_bin" -d "$filebrowser_db_file" config set --address 0.0.0.0 --port ${port} --root ${file_dir}
+	"$filebrowser_bin" -d "$filebrowser_db_file" users add ${file_user} ${file_pw} --perm.admin
+	ip=$(curl -s ipinfo.io/ip)
+	clear
+	echo -e "
+		访问地址: ${yellow}http://${ip}:${port}/$none
+
+		文件上传目录：${green}${file_dir}
+
+		用户名: ${Info_font_prefix}${file_user}${Font_suffix}
+
+		密码: ${Info_font_prefix}${file_pw}${Font_suffix}
+
+		"
+	echo -e "${Info_font_prefix}[信息]${Font_suffix} Filebrowser 安装完成！"
+    else
+    clear
+    echo -e "${Error_font_prefix}[信息]${Font_suffix} 更新成功！"
+	fi
+}
 install_filebrowser(){
 	if [[ -e ${filebrowser_bin} ]]; then
-		echo && echo -e "${Error_font_prefix}[信息]${Font_suffix} 检测到 Filebrowser 已安装，是否继续安装(覆盖更新)？[y/N]"
+		echo && echo -e "${Error_font_prefix}[信息]${Font_suffix} 检测到 Filebrowser 已安装，是否继续安装(更新)？[y/N]"
 		stty erase '^H' && read -p "(默认: n):" yn
 		[[ -z ${yn} ]] && yn="n"
 		if [[ ${yn} == [Nn] ]]; then
@@ -144,22 +161,9 @@ install_filebrowser(){
 	fi
 	Download_filebrowser
 	Service_filebrowser
+	check_database
 	/etc/init.d/filebrowser start
-	ip=$(curl -s ipinfo.io/ip)
-	clear
-	echo -e "
-		访问地址: ${yellow}http://${ip}:${port}/$none
-
-		文件上传目录：${green}${file_dir}
-
-		用户名: ${Info_font_prefix}admin${Font_suffix}
-
-		密码: ${Info_font_prefix}admin${Font_suffix}
-
-		${Error_font_prefix}请尽快修改密码${Font_suffix}
-
-		"
-	echo && echo -e " filebrowser 配置文件：${filebrowser_conf_file} \n 使用说明：/etc/init.d/filebrowser start | stop | restart | status \n ${Info_font_prefix}[信息]${Font_suffix} Filebrowser 安装完成！" && echo
+	echo && echo -e " filebrowser 数据文件：${filebrowser_db_file} \n 使用说明：/etc/init.d/filebrowser start | stop | restart | status " && echo
 }
 uninstall_filebrowser(){
 	check_installed_status
